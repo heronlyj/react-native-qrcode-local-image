@@ -2,6 +2,7 @@ package com.remobile.qrcodeLocalImage;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Base64;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -33,33 +34,57 @@ public class RCTQRCodeLocalImage extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void decode(String path, Callback callback) {
-        Hashtable<DecodeHintType, String> hints = new Hashtable<DecodeHintType, String>();
-        hints.put(DecodeHintType.CHARACTER_SET, "utf-8"); // 设置二维码内容的编码
+
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true; // 先获取原大小
         options.inJustDecodeBounds = false; // 获取新的大小
 
         int sampleSize = (int) (options.outHeight / (float) 200);
 
-        if (sampleSize <= 0)
+        if (sampleSize <= 0) {
             sampleSize = 1;
+        }
+
         options.inSampleSize = sampleSize;
         Bitmap scanBitmap = null;
-        if (path.startsWith("http://")||path.startsWith("https://")) {
+
+        if (path.startsWith("http://") || path.startsWith("https://")) {
             scanBitmap = this.getbitmap(path);
         } else {
             scanBitmap = BitmapFactory.decodeFile(path, options);
         }
+
         if (scanBitmap == null) {
             callback.invoke("cannot load image");
-            return;
+        } else {
+            decode(scanBitmap, callback);
         }
+    }
+
+
+    @ReactMethod
+    public void decodeBase64String(String dataString, Callback callback) {
+        byte[] decodedBytes = Base64.decode(dataString, 0);
+        Bitmap scanBitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+        if (scanBitmap == null) {
+            callback.invoke("cannot load image");
+        } else {
+            decode(scanBitmap, callback);
+        }
+    }
+
+    private void decode(Bitmap scanBitmap, Callback callback) {
+
+        Hashtable<DecodeHintType, String> hints = new Hashtable<DecodeHintType, String>();
+        hints.put(DecodeHintType.CHARACTER_SET, "utf-8"); // 设置二维码内容的编码
+
         int[] intArray = new int[scanBitmap.getWidth()*scanBitmap.getHeight()];
         scanBitmap.getPixels(intArray, 0, scanBitmap.getWidth(), 0, 0, scanBitmap.getWidth(), scanBitmap.getHeight());
 
         RGBLuminanceSource source = new RGBLuminanceSource(scanBitmap.getWidth(), scanBitmap.getHeight(), intArray);
         BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
         QRCodeReader reader = new QRCodeReader();
+
         try {
             Result result = reader.decode(bitmap, hints);
             if (result == null) {
