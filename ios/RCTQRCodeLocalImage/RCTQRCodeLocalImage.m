@@ -17,17 +17,27 @@ RCT_EXPORT_MODULE()
 RCT_EXPORT_METHOD(decode:(NSString *)path callback:(RCTResponseSenderBlock)callback)
 {
     UIImage *srcImage;
+    
     if ([path hasPrefix:@"http://"] || [path hasPrefix:@"https://"]) {
         srcImage = [UIImage imageWithData: [NSData dataWithContentsOfURL:[NSURL URLWithString: path]]];
     } else {
         srcImage = [[UIImage alloc] initWithContentsOfFile:path];
     }
-    if (nil==srcImage){
+    if (srcImage == NULL){
         NSLog(@"PROBLEM! IMAGE NOT LOADED\n");
         callback(@[RCTMakeError(@"IMAGE NOT LOADED!", nil, nil)]);
         return;
+    } else {
+        self
     }
+   
+}
+
+
+- (void)detectImage:(UIImage*)srcImage callback:(RCTResponseSenderBlock)callback {
+    
     NSLog(@"OK - IMAGE LOADED\n");
+    
     NSDictionary *detectorOptions = @{@"CIDetectorAccuracy": @"CIDetectorAccuracyHigh"};
     CIDetector *detector = [CIDetector detectorOfType:CIDetectorTypeQRCode context:nil options:detectorOptions];
     CIImage *image = [CIImage imageWithCGImage:srcImage.CGImage];
@@ -50,4 +60,5 @@ RCT_EXPORT_METHOD(decode:(NSString *)path callback:(RCTResponseSenderBlock)callb
         return;
     }
 }
+
 @end
